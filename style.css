@@ -98,8 +98,6 @@ h2 {
 }
 
 .controls .primary {
-  background: var(--accent);
-  color: #253119;
   font-weight: 700;
 }
 

@@ -85,10 +85,16 @@ function syncInitialPositions() {
   });
 }
 
-function toggleDrawMode() {
-  drawMode = !drawMode;
+function syncDrawButton() {
   toggleDrawButton.textContent = `描画モード: ${drawMode ? "ON" : "OFF"}`;
   toggleDrawButton.classList.toggle("primary", drawMode);
+  toggleDrawButton.style.background = drawMode ? "var(--accent)" : "rgba(255, 255, 255, 0.09)";
+  toggleDrawButton.style.color = drawMode ? "#ffffff" : "var(--text)";
+}
+
+function toggleDrawMode() {
+  drawMode = !drawMode;
+  syncDrawButton();
 }
 
 function startStroke(event) {
@@ -272,6 +278,7 @@ board.addEventListener("pointercancel", (event) => {
 
 getMarkers().forEach(enableDragging);
 syncInitialPositions();
+syncDrawButton();
 resizeCanvas();
 
 document.addEventListener("keydown", (event) => {
