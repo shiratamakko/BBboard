@@ -8,6 +8,10 @@ const resetMarkersButton = document.getElementById("resetMarkers");
 const commentToolbar = document.getElementById("commentToolbar");
 const toolbarEditButton = document.getElementById("toolbarEdit");
 const toolbarDeleteButton = document.getElementById("toolbarDelete");
+const commentEditorModal = document.getElementById("commentEditorModal");
+const commentEditorInput = document.getElementById("commentEditorInput");
+const cancelCommentEditButton = document.getElementById("cancelCommentEdit");
+const saveCommentEditButton = document.getElementById("saveCommentEdit");
 const colorButtons = document.querySelectorAll(".color-swatch");
 const lineWidthInput = document.getElementById("lineWidth");
 const lineWidthValue = document.getElementById("lineWidthValue");
@@ -18,6 +22,7 @@ let currentLineWidth = 3;
 let isDrawing = false;
 let currentStroke = null;
 let selectedComment = null;
+let editingComment = null;
 const strokes = [];
 const initialPositions = [];
 
@@ -216,26 +221,44 @@ function syncCommentToolbar() {
   commentToolbar.style.top = `${top}px`;
 }
 
-function editComment(comment) {
+function closeCommentEditor() {
+  commentEditorModal.hidden = true;
+  editingComment = null;
+}
+
+function openCommentEditor(comment) {
   if (!comment) {
     return;
   }
 
-  const nextText = window.prompt("コメントを編集してください", comment.textContent);
-  if (nextText === null) {
+  editingComment = comment;
+  commentEditorInput.value = comment.textContent;
+  commentEditorModal.hidden = false;
+  commentEditorInput.focus();
+  commentEditorInput.setSelectionRange(
+    commentEditorInput.value.length,
+    commentEditorInput.value.length,
+  );
+}
+
+function saveCommentEdit() {
+  if (!editingComment) {
     return;
   }
 
-  const trimmed = nextText.trim();
+  const trimmed = commentEditorInput.value.trim();
   if (!trimmed) {
-    if (selectedComment === comment) {
+    if (selectedComment === editingComment) {
       setSelectedComment(null);
     }
-    comment.remove();
+    editingComment.remove();
+    closeCommentEditor();
     return;
   }
 
-  comment.textContent = trimmed;
+  editingComment.textContent = trimmed;
+  closeCommentEditor();
+  syncCommentToolbar();
 }
 
 function attachCommentEditor(comment) {
@@ -246,7 +269,7 @@ function attachCommentEditor(comment) {
   });
 
   comment.addEventListener("dblclick", () => {
-    editComment(comment);
+    openCommentEditor(comment);
   });
 }
 
@@ -260,7 +283,7 @@ function addComment() {
   enableDragging(comment);
   attachCommentEditor(comment);
   setSelectedComment(comment);
-  editComment(comment);
+  openCommentEditor(comment);
 }
 
 toggleDrawButton.addEventListener("click", toggleDrawMode);
@@ -268,8 +291,7 @@ addCommentButton.addEventListener("click", addComment);
 clearLinesButton.addEventListener("click", clearLines);
 resetMarkersButton.addEventListener("click", resetMarkers);
 toolbarEditButton.addEventListener("click", () => {
-  editComment(selectedComment);
-  syncCommentToolbar();
+  openCommentEditor(selectedComment);
 });
 toolbarDeleteButton.addEventListener("click", () => {
   if (!selectedComment) {
@@ -291,6 +313,14 @@ colorButtons.forEach((button) => {
 lineWidthInput.addEventListener("input", () => {
   currentLineWidth = Number(lineWidthInput.value);
   lineWidthValue.textContent = `${currentLineWidth}px`;
+});
+
+cancelCommentEditButton.addEventListener("click", closeCommentEditor);
+saveCommentEditButton.addEventListener("click", saveCommentEdit);
+commentEditorModal.addEventListener("pointerdown", (event) => {
+  if (event.target.classList.contains("comment-editor-backdrop")) {
+    closeCommentEditor();
+  }
 });
 
 board.addEventListener("pointerdown", (event) => {
@@ -324,6 +354,17 @@ syncDrawButton();
 resizeCanvas();
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !commentEditorModal.hidden) {
+    closeCommentEditor();
+    return;
+  }
+
+  if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && !commentEditorModal.hidden) {
+    event.preventDefault();
+    saveCommentEdit();
+    return;
+  }
+
   if ((event.key !== "Delete" && event.key !== "Backspace") || !selectedComment) {
     return;
   }

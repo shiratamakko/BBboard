@@ -87,6 +87,18 @@
     </section>
   </main>
 
+  <div id="commentEditorModal" class="comment-editor-modal" hidden>
+    <div class="comment-editor-backdrop"></div>
+    <div class="comment-editor-sheet" role="dialog" aria-modal="true" aria-labelledby="commentEditorTitle">
+      <h2 id="commentEditorTitle">コメント編集</h2>
+      <textarea id="commentEditorInput" rows="5" placeholder="コメントを入力"></textarea>
+      <div class="comment-editor-actions">
+        <button id="cancelCommentEdit" type="button">キャンセル</button>
+        <button id="saveCommentEdit" type="button">保存</button>
+      </div>
+    </div>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>
