@@ -10,6 +10,7 @@ const toolbarEditButton = document.getElementById("toolbarEdit");
 const toolbarDeleteButton = document.getElementById("toolbarDelete");
 const commentEditorModal = document.getElementById("commentEditorModal");
 const commentEditorInput = document.getElementById("commentEditorInput");
+const commentEditorCount = document.getElementById("commentEditorCount");
 const cancelCommentEditButton = document.getElementById("cancelCommentEdit");
 const saveCommentEditButton = document.getElementById("saveCommentEdit");
 const colorButtons = document.querySelectorAll(".color-swatch");
@@ -25,6 +26,7 @@ let selectedComment = null;
 let editingComment = null;
 const strokes = [];
 const initialPositions = [];
+const MAX_COMMENT_LENGTH = 50;
 
 function resizeCanvas() {
   const rect = board.getBoundingClientRect();
@@ -82,6 +84,24 @@ function setMarkerPosition(marker, xPercent, yPercent) {
 
 function getMarkers() {
   return document.querySelectorAll(".marker");
+}
+
+function ensureCommentContent(comment) {
+  let content = comment.querySelector(".comment-content");
+  if (!content) {
+    content = document.createElement("div");
+    content.className = "comment-content";
+    comment.appendChild(content);
+  }
+  return content;
+}
+
+function getCommentText(comment) {
+  return ensureCommentContent(comment).textContent;
+}
+
+function setCommentText(comment, text) {
+  ensureCommentContent(comment).textContent = text;
 }
 
 function syncInitialPositions() {
@@ -221,7 +241,58 @@ function syncCommentToolbar() {
   commentToolbar.style.top = `${top}px`;
 }
 
+function keepCommentInBounds(comment) {
+  if (!comment) {
+    return;
+  }
+
+  const boardRect = board.getBoundingClientRect();
+  const commentRect = comment.getBoundingClientRect();
+  const currentCenterX = ((commentRect.left - boardRect.left) + (commentRect.width / 2));
+  const currentCenterY = ((commentRect.top - boardRect.top) + (commentRect.height / 2));
+  const minCenterX = (commentRect.width / 2) + 8;
+  const maxCenterX = boardRect.width - (commentRect.width / 2) - 8;
+  const minCenterY = (commentRect.height / 2) + 8;
+  const maxCenterY = boardRect.height - (commentRect.height / 2) - 8;
+  const nextX = clamp((clamp(currentCenterX, minCenterX, maxCenterX) / boardRect.width) * 100, 2, 98);
+  const nextY = clamp((clamp(currentCenterY, minCenterY, maxCenterY) / boardRect.height) * 100, 2, 98);
+  setMarkerPosition(comment, nextX, nextY);
+}
+
+function scheduleCommentBoundsCheck(comment) {
+  if (!comment) {
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    keepCommentInBounds(comment);
+    syncCommentToolbar();
+  });
+
+  window.setTimeout(() => {
+    keepCommentInBounds(comment);
+    syncCommentToolbar();
+  }, 120);
+
+  window.setTimeout(() => {
+    keepCommentInBounds(comment);
+    syncCommentToolbar();
+  }, 260);
+}
+
+function updateCommentCount() {
+  const length = commentEditorInput.value.length;
+  commentEditorCount.textContent = `${length} / ${MAX_COMMENT_LENGTH}`;
+  commentEditorCount.classList.toggle("over", length > MAX_COMMENT_LENGTH);
+}
+
 function closeCommentEditor() {
+  if (editingComment?.dataset.newComment === "true" && !getCommentText(editingComment).trim()) {
+    if (selectedComment === editingComment) {
+      setSelectedComment(null);
+    }
+    editingComment.remove();
+  }
   commentEditorModal.hidden = true;
   editingComment = null;
 }
@@ -232,7 +303,8 @@ function openCommentEditor(comment) {
   }
 
   editingComment = comment;
-  commentEditorInput.value = comment.textContent;
+  commentEditorInput.value = getCommentText(comment);
+  updateCommentCount();
   commentEditorModal.hidden = false;
   commentEditorInput.focus();
   commentEditorInput.setSelectionRange(
@@ -246,7 +318,14 @@ function saveCommentEdit() {
     return;
   }
 
-  const trimmed = commentEditorInput.value.trim();
+  const rawText = commentEditorInput.value;
+  if (rawText.length > MAX_COMMENT_LENGTH) {
+    window.alert(`コメントは${MAX_COMMENT_LENGTH}文字以内で入力してください。`);
+    commentEditorInput.focus();
+    return;
+  }
+
+  const trimmed = rawText.trim();
   if (!trimmed) {
     if (selectedComment === editingComment) {
       setSelectedComment(null);
@@ -256,9 +335,16 @@ function saveCommentEdit() {
     return;
   }
 
-  editingComment.textContent = trimmed;
+  const comment = editingComment;
+  setCommentText(comment, trimmed);
+  if (comment.dataset.newComment === "true") {
+    setMarkerPosition(comment, 50, 62);
+    comment.classList.remove("is-draft");
+    delete comment.dataset.newComment;
+  }
   closeCommentEditor();
-  syncCommentToolbar();
+  setSelectedComment(comment);
+  scheduleCommentBoundsCheck(comment);
 }
 
 function attachCommentEditor(comment) {
@@ -275,11 +361,12 @@ function attachCommentEditor(comment) {
 
 function addComment() {
   const comment = document.createElement("div");
-  comment.className = "marker comment";
+  comment.className = "marker comment is-draft";
   comment.dataset.role = "COMMENT";
+  comment.dataset.newComment = "true";
   board.appendChild(comment);
-  setMarkerPosition(comment, 62, 76);
-  comment.textContent = "";
+  setMarkerPosition(comment, 50, 62);
+  setCommentText(comment, "");
   enableDragging(comment);
   attachCommentEditor(comment);
   setSelectedComment(comment);
@@ -317,6 +404,7 @@ lineWidthInput.addEventListener("input", () => {
 
 cancelCommentEditButton.addEventListener("click", closeCommentEditor);
 saveCommentEditButton.addEventListener("click", saveCommentEdit);
+commentEditorInput.addEventListener("input", updateCommentCount);
 commentEditorModal.addEventListener("pointerdown", (event) => {
   if (event.target.classList.contains("comment-editor-backdrop")) {
     closeCommentEditor();
@@ -365,6 +453,10 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
+  if (!commentEditorModal.hidden) {
+    return;
+  }
+
   if ((event.key !== "Delete" && event.key !== "Backspace") || !selectedComment) {
     return;
   }
@@ -376,3 +468,11 @@ document.addEventListener("keydown", (event) => {
 
 window.addEventListener("resize", resizeCanvas);
 window.addEventListener("resize", syncCommentToolbar);
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", () => {
+    if (selectedComment) {
+      scheduleCommentBoundsCheck(selectedComment);
+    }
+  });
+}

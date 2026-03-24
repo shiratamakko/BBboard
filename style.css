@@ -286,6 +286,18 @@ h2 {
   gap: 10px;
 }
 
+.comment-editor-count {
+  margin: 0;
+  color: rgba(47, 36, 20, 0.7);
+  font-size: 0.88rem;
+  text-align: right;
+}
+
+.comment-editor-count.over {
+  color: #d62839;
+  font-weight: 700;
+}
+
 .comment-editor-actions button {
   border: 0;
   border-radius: 999px;
@@ -359,20 +371,30 @@ h2 {
   z-index: 4;
   min-width: 96px;
   max-width: 180px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: #fffdf7;
   color: #2f2414;
   font-size: 0.92rem;
   font-weight: 700;
   line-height: 1.4;
-  white-space: pre-wrap;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+}
+
+.comment.is-draft {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .comment.selected {
   outline: 3px solid #ffd166;
   outline-offset: 2px;
+}
+
+.comment-content {
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: #fffdf7;
+  white-space: pre-wrap;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
 }
 
 .comment::after {
@@ -447,8 +469,12 @@ h2 {
 
   .comment {
     min-width: 84px;
-    max-width: 150px;
+    max-width: min(150px, 42vw);
     font-size: 0.84rem;
+  }
+
+  .comment-content {
+    max-height: min(180px, 30vh);
   }
 
   .comment-toolbar {
