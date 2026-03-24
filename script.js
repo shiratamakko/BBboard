@@ -347,6 +347,18 @@ function saveCommentEdit() {
   scheduleCommentBoundsCheck(comment);
 }
 
+function requestSaveCommentEdit() {
+  if (!editingComment) {
+    return;
+  }
+
+  commentEditorInput.blur();
+  window.setTimeout(() => {
+    updateCommentCount();
+    saveCommentEdit();
+  }, 0);
+}
+
 function attachCommentEditor(comment) {
   comment.tabIndex = 0;
 
@@ -403,8 +415,11 @@ lineWidthInput.addEventListener("input", () => {
 });
 
 cancelCommentEditButton.addEventListener("click", closeCommentEditor);
-saveCommentEditButton.addEventListener("click", saveCommentEdit);
+saveCommentEditButton.addEventListener("click", requestSaveCommentEdit);
 commentEditorInput.addEventListener("input", updateCommentCount);
+commentEditorInput.addEventListener("change", updateCommentCount);
+commentEditorInput.addEventListener("keyup", updateCommentCount);
+commentEditorInput.addEventListener("compositionend", updateCommentCount);
 commentEditorModal.addEventListener("pointerdown", (event) => {
   if (event.target.classList.contains("comment-editor-backdrop")) {
     closeCommentEditor();
@@ -449,7 +464,7 @@ document.addEventListener("keydown", (event) => {
 
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && !commentEditorModal.hidden) {
     event.preventDefault();
-    saveCommentEdit();
+    requestSaveCommentEdit();
     return;
   }
 
