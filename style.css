@@ -97,13 +97,19 @@ h2 {
   background: rgba(255, 255, 255, 0.14);
 }
 
+.controls button:disabled {
+  cursor: default;
+  opacity: 0.45;
+  transform: none;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .controls .color-swatch:hover,
 .controls .color-swatch:active,
 .controls .color-swatch:focus,
 .controls .color-swatch:focus-visible {
   transform: none;
-  background-color: var(--swatch);
-  background-image: none;
+  background: transparent;
 }
 
 .controls .primary {
@@ -124,19 +130,24 @@ h2 {
 .color-swatch {
   -webkit-appearance: none;
   appearance: none;
+  position: relative;
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background-color: var(--swatch);
+  background: transparent;
   background-image: none;
   border: 3px solid transparent;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.24);
   padding: 0;
 }
 
-.controls .color-swatch {
+.color-swatch::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
   background-color: var(--swatch);
   background-image: none;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.24);
 }
 
 .size-control input[type="range"] {
@@ -153,7 +164,6 @@ h2 {
   border-color: transparent;
   outline: 3px solid rgba(255, 209, 102, 0.95);
   outline-offset: 2px;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.24);
 }
 
 .tips {
@@ -198,6 +208,33 @@ h2 {
   width: 100%;
   height: 100%;
   z-index: 1;
+}
+
+.comment-toolbar {
+  position: absolute;
+  z-index: 8;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 999px;
+  background: rgba(11, 31, 21, 0.92);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
+}
+
+.comment-toolbar[hidden] {
+  display: none !important;
+}
+
+.comment-toolbar button {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.comment-toolbar button:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .marker {
@@ -356,5 +393,15 @@ h2 {
     min-width: 84px;
     max-width: 150px;
     font-size: 0.84rem;
+  }
+
+  .comment-toolbar {
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .comment-toolbar button {
+    padding: 7px 10px;
+    font-size: 0.8rem;
   }
 }

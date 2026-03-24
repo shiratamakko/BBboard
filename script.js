@@ -5,6 +5,9 @@ const toggleDrawButton = document.getElementById("toggleDraw");
 const addCommentButton = document.getElementById("addComment");
 const clearLinesButton = document.getElementById("clearLines");
 const resetMarkersButton = document.getElementById("resetMarkers");
+const commentToolbar = document.getElementById("commentToolbar");
+const toolbarEditButton = document.getElementById("toolbarEdit");
+const toolbarDeleteButton = document.getElementById("toolbarDelete");
 const colorButtons = document.querySelectorAll(".color-swatch");
 const lineWidthInput = document.getElementById("lineWidth");
 const lineWidthValue = document.getElementById("lineWidthValue");
@@ -141,6 +144,7 @@ function setSelectedComment(comment) {
   if (selectedComment) {
     selectedComment.classList.add("selected");
   }
+  syncCommentToolbar();
 }
 
 function resetMarkers() {
@@ -168,6 +172,9 @@ function enableDragging(marker) {
     const xPercent = clamp(((event.clientX - rect.left) / rect.width) * 100, 2, 98);
     const yPercent = clamp(((event.clientY - rect.top) / rect.height) * 100, 2, 98);
     setMarkerPosition(marker, xPercent, yPercent);
+    if (marker === selectedComment) {
+      syncCommentToolbar();
+    }
   });
 
   function stopDragging(event) {
@@ -186,6 +193,51 @@ function enableDragging(marker) {
   marker.addEventListener("pointercancel", stopDragging);
 }
 
+function syncCommentToolbar() {
+  if (!selectedComment) {
+    commentToolbar.hidden = true;
+    return;
+  }
+
+  const commentRect = selectedComment.getBoundingClientRect();
+  const boardRect = board.getBoundingClientRect();
+  const toolbarWidth = commentToolbar.offsetWidth || 110;
+  const toolbarHeight = commentToolbar.offsetHeight || 42;
+  const left = clamp(
+    commentRect.left - boardRect.left + commentRect.width / 2 - toolbarWidth / 2,
+    8,
+    boardRect.width - toolbarWidth - 8,
+  );
+  const topCandidate = commentRect.top - boardRect.top - toolbarHeight - 12;
+  const top = topCandidate < 8 ? commentRect.bottom - boardRect.top + 12 : topCandidate;
+
+  commentToolbar.hidden = false;
+  commentToolbar.style.left = `${left}px`;
+  commentToolbar.style.top = `${top}px`;
+}
+
+function editComment(comment) {
+  if (!comment) {
+    return;
+  }
+
+  const nextText = window.prompt("コメントを編集してください", comment.textContent);
+  if (nextText === null) {
+    return;
+  }
+
+  const trimmed = nextText.trim();
+  if (!trimmed) {
+    if (selectedComment === comment) {
+      setSelectedComment(null);
+    }
+    comment.remove();
+    return;
+  }
+
+  comment.textContent = trimmed;
+}
+
 function attachCommentEditor(comment) {
   comment.tabIndex = 0;
 
@@ -194,49 +246,39 @@ function attachCommentEditor(comment) {
   });
 
   comment.addEventListener("dblclick", () => {
-    const nextText = window.prompt("コメントを編集してください", comment.textContent);
-    if (nextText === null) {
-      return;
-    }
-
-    const trimmed = nextText.trim();
-    if (!trimmed) {
-      if (selectedComment === comment) {
-        setSelectedComment(null);
-      }
-      comment.remove();
-      return;
-    }
-
-    comment.textContent = trimmed;
+    editComment(comment);
   });
 }
 
 function addComment() {
-  const text = window.prompt("コメントを入力してください", "ここにコメント");
-  if (!text) {
-    return;
-  }
-
-  const trimmed = text.trim();
-  if (!trimmed) {
-    return;
-  }
-
   const comment = document.createElement("div");
   comment.className = "marker comment";
   comment.dataset.role = "COMMENT";
   board.appendChild(comment);
   setMarkerPosition(comment, 62, 76);
-  comment.textContent = trimmed;
+  comment.textContent = "";
   enableDragging(comment);
   attachCommentEditor(comment);
+  setSelectedComment(comment);
+  editComment(comment);
 }
 
 toggleDrawButton.addEventListener("click", toggleDrawMode);
 addCommentButton.addEventListener("click", addComment);
 clearLinesButton.addEventListener("click", clearLines);
 resetMarkersButton.addEventListener("click", resetMarkers);
+toolbarEditButton.addEventListener("click", () => {
+  editComment(selectedComment);
+  syncCommentToolbar();
+});
+toolbarDeleteButton.addEventListener("click", () => {
+  if (!selectedComment) {
+    return;
+  }
+
+  selectedComment.remove();
+  setSelectedComment(null);
+});
 
 colorButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -252,7 +294,7 @@ lineWidthInput.addEventListener("input", () => {
 });
 
 board.addEventListener("pointerdown", (event) => {
-  if (event.target.closest(".marker")) {
+  if (event.target.closest(".marker") || event.target.closest(".comment-toolbar")) {
     return;
   }
 
@@ -292,3 +334,4 @@ document.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("resize", resizeCanvas);
+window.addEventListener("resize", syncCommentToolbar);
