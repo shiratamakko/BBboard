@@ -298,6 +298,12 @@ h2 {
   font-weight: 700;
 }
 
+.comment-editor-error {
+  margin: -4px 0 0;
+  color: #d62839;
+  font-size: 0.88rem;
+}
+
 .comment-editor-actions button {
   border: 0;
   border-radius: 999px;
@@ -370,7 +376,7 @@ h2 {
 .comment {
   z-index: 4;
   min-width: 96px;
-  max-width: 180px;
+  max-width: 260px;
   color: #2f2414;
   font-size: 0.92rem;
   font-weight: 700;
@@ -388,8 +394,10 @@ h2 {
 }
 
 .comment-content {
-  max-height: 220px;
+  max-height: 280px;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding: 10px 12px;
   border-radius: 16px;
   background: #fffdf7;
@@ -469,12 +477,12 @@ h2 {
 
   .comment {
     min-width: 84px;
-    max-width: min(150px, 42vw);
+    max-width: min(220px, 58vw);
     font-size: 0.84rem;
   }
 
   .comment-content {
-    max-height: min(180px, 30vh);
+    max-height: min(240px, 42vh);
   }
 
   .comment-toolbar {

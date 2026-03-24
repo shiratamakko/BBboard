@@ -11,6 +11,7 @@ const toolbarDeleteButton = document.getElementById("toolbarDelete");
 const commentEditorModal = document.getElementById("commentEditorModal");
 const commentEditorInput = document.getElementById("commentEditorInput");
 const commentEditorCount = document.getElementById("commentEditorCount");
+const commentEditorError = document.getElementById("commentEditorError");
 const cancelCommentEditButton = document.getElementById("cancelCommentEdit");
 const saveCommentEditButton = document.getElementById("saveCommentEdit");
 const colorButtons = document.querySelectorAll(".color-swatch");
@@ -283,7 +284,10 @@ function scheduleCommentBoundsCheck(comment) {
 function updateCommentCount() {
   const length = commentEditorInput.value.length;
   commentEditorCount.textContent = `${length} / ${MAX_COMMENT_LENGTH}`;
-  commentEditorCount.classList.toggle("over", length > MAX_COMMENT_LENGTH);
+  const isOver = length > MAX_COMMENT_LENGTH;
+  commentEditorCount.classList.toggle("over", isOver);
+  commentEditorError.hidden = !isOver;
+  saveCommentEditButton.disabled = isOver;
 }
 
 function closeCommentEditor() {
@@ -294,6 +298,8 @@ function closeCommentEditor() {
     editingComment.remove();
   }
   commentEditorModal.hidden = true;
+  commentEditorError.hidden = true;
+  saveCommentEditButton.disabled = false;
   editingComment = null;
 }
 
@@ -320,7 +326,8 @@ function saveCommentEdit() {
 
   const rawText = commentEditorInput.value;
   if (rawText.length > MAX_COMMENT_LENGTH) {
-    window.alert(`コメントは${MAX_COMMENT_LENGTH}文字以内で入力してください。`);
+    commentEditorError.hidden = false;
+    saveCommentEditButton.disabled = true;
     commentEditorInput.focus();
     return;
   }
@@ -355,8 +362,21 @@ function requestSaveCommentEdit() {
   commentEditorInput.blur();
   window.setTimeout(() => {
     updateCommentCount();
+    if (commentEditorInput.value.length > MAX_COMMENT_LENGTH) {
+      return;
+    }
     saveCommentEdit();
   }, 0);
+}
+
+function handleSaveEditorPointerDown(event) {
+  event.preventDefault();
+  requestSaveCommentEdit();
+}
+
+function handleCancelEditorPointerDown(event) {
+  event.preventDefault();
+  closeCommentEditor();
 }
 
 function attachCommentEditor(comment) {
@@ -415,7 +435,9 @@ lineWidthInput.addEventListener("input", () => {
 });
 
 cancelCommentEditButton.addEventListener("click", closeCommentEditor);
+cancelCommentEditButton.addEventListener("pointerdown", handleCancelEditorPointerDown);
 saveCommentEditButton.addEventListener("click", requestSaveCommentEdit);
+saveCommentEditButton.addEventListener("pointerdown", handleSaveEditorPointerDown);
 commentEditorInput.addEventListener("input", updateCommentCount);
 commentEditorInput.addEventListener("change", updateCommentCount);
 commentEditorInput.addEventListener("keyup", updateCommentCount);

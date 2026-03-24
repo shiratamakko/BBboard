@@ -45,8 +45,9 @@
         <div class="control-group">
           <h2>使い方</h2>
           <ul class="tips">
-            <li>描画モードが OFF のときは、マーカーをドラッグできます。</li>
+            <li>選手マーカーをドラッグして守備の動きを再現できます。</li>
             <li>描画モードが ON のときは、ボード上に線を描けます。</li>
+            <li>線を消すでボード上から線を全て削除できます。</li>
             <li>マーカーを戻すで初期配置に戻せます。</li>
           </ul>
         </div>
@@ -93,6 +94,7 @@
       <h2 id="commentEditorTitle">コメント編集</h2>
       <textarea id="commentEditorInput" rows="5" placeholder="コメントを入力"></textarea>
       <p id="commentEditorCount" class="comment-editor-count">0 / 50</p>
+      <p id="commentEditorError" class="comment-editor-error" hidden>50文字以内で入力してください。</p>
       <div class="comment-editor-actions">
         <button id="cancelCommentEdit" type="button">キャンセル</button>
         <button id="saveCommentEdit" type="button">保存</button>
