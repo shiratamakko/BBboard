@@ -464,18 +464,18 @@ h2 {
 
   .player,
   .runner {
-    width: 30px;
-    height: 30px;
-    font-size: 0.72rem;
+    width: 20px;
+    height: 20px;
+    font-size: 0.62rem;
   }
 
   .player::after {
-    font-size: 0.6rem;
+    font-size: 0.5rem;
   }
 
   .ball {
-    width: 22px; 
-    height: 22px;
+    width: 15px; 
+    height: 15px;
   }
 
   .comment {
