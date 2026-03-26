@@ -464,8 +464,8 @@ h2 {
 
   .player,
   .runner {
-    width: 40px;
-    height: 40px;
+    width: 30px;
+    height: 30px;
     font-size: 0.62rem;
   }
 
