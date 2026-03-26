@@ -464,8 +464,8 @@ h2 {
 
   .player,
   .runner {
-    width: 20px;
-    height: 20px;
+    width: 25px;
+    height: 25px;
     font-size: 0.62rem;
   }
 
@@ -474,8 +474,8 @@ h2 {
   }
 
   .ball {
-    width: 15px;
-    height: 15px;
+    width: 18px;
+    height: 18px;
   }
 
   .comment {
