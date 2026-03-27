@@ -186,10 +186,12 @@ h2 {
 .board {
   position: relative;
   width: 100%;
-  aspect-ratio: 672 / 960;
+  aspect-ratio: 960 / 1088;
   overflow: hidden;
   background: #5daf59;
   touch-action: none;
+  transform: translate(var(--board-tx, 0px), var(--board-ty, 0px)) scale(var(--board-scale, 1));
+  transform-origin: center;
 }
 
 .board-image {
@@ -198,8 +200,12 @@ h2 {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 45%;
+  transform: scale(1.06);
+  background: #5daf59;
   user-select: none;
   pointer-events: none;
+  touch-action: none;
 }
 
 #drawLayer {
@@ -208,6 +214,7 @@ h2 {
   width: 100%;
   height: 100%;
   z-index: 1;
+  touch-action: none;
 }
 
 .comment-toolbar {
@@ -461,18 +468,18 @@ h2 {
 
   .player,
   .runner {
-    width: 36px;
-    height: 36px;
-    font-size: 0.82rem;
+    width: 23px;
+    height: 23px;
+    font-size: 0.62rem;
   }
 
   .player::after {
-    font-size: 0.68rem;
+    font-size: 0.5rem;
   }
 
   .ball {
-    width: 28px;
-    height: 28px;
+    width: 20px;
+    height: 20px;
   }
 
   .comment {

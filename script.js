@@ -28,6 +28,16 @@ let editingComment = null;
 const strokes = [];
 const initialPositions = [];
 const MAX_COMMENT_LENGTH = 50;
+const MIN_BOARD_SCALE = 1;
+const MAX_BOARD_SCALE = 2.4;
+const activePointers = new Map();
+let boardScale = 1;
+let boardTranslate = { x: 0, y: 0 };
+let pinchStartDistance = 0;
+let pinchStartScale = 1;
+let isPanning = false;
+let panStartPoint = null;
+let panStartTranslate = null;
 
 function resizeCanvas() {
   const rect = board.getBoundingClientRect();
@@ -36,6 +46,7 @@ function resizeCanvas() {
   canvas.height = rect.height * ratio;
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   redraw();
+  clampBoardTranslate();
 }
 
 function redraw() {
@@ -66,6 +77,111 @@ function redraw() {
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function distanceBetween(a, b) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.hypot(dx, dy);
+}
+
+function setBoardScale(scale) {
+  boardScale = clamp(scale, MIN_BOARD_SCALE, MAX_BOARD_SCALE);
+  board.style.setProperty("--board-scale", boardScale.toFixed(3));
+  clampBoardTranslate();
+  if (selectedComment) {
+    scheduleCommentBoundsCheck(selectedComment);
+  }
+}
+
+function setBoardTranslate(x, y) {
+  boardTranslate = { x, y };
+  board.style.setProperty("--board-tx", `${x.toFixed(1)}px`);
+  board.style.setProperty("--board-ty", `${y.toFixed(1)}px`);
+}
+
+function getMaxTranslate() {
+  const rect = board.getBoundingClientRect();
+  const baseWidth = rect.width / boardScale;
+  const baseHeight = rect.height / boardScale;
+  return {
+    x: ((boardScale - 1) * baseWidth) / 2,
+    y: ((boardScale - 1) * baseHeight) / 2,
+  };
+}
+
+function clampBoardTranslate() {
+  const limits = getMaxTranslate();
+  const nextX = clamp(boardTranslate.x, -limits.x, limits.x);
+  const nextY = clamp(boardTranslate.y, -limits.y, limits.y);
+  setBoardTranslate(nextX, nextY);
+}
+
+function updatePointerPosition(event) {
+  activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+}
+
+function handleZoomPointerDown(event) {
+  if (event.pointerType !== "touch") {
+    return;
+  }
+
+  updatePointerPosition(event);
+  if (activePointers.size === 2) {
+    const points = Array.from(activePointers.values());
+    pinchStartDistance = distanceBetween(points[0], points[1]) || 1;
+    pinchStartScale = boardScale;
+  }
+}
+
+function handleZoomPointerMove(event) {
+  if (event.pointerType !== "touch") {
+    return;
+  }
+
+  if (!activePointers.has(event.pointerId)) {
+    return;
+  }
+
+  updatePointerPosition(event);
+  if (activePointers.size === 2) {
+    event.preventDefault();
+    const points = Array.from(activePointers.values());
+    const distance = distanceBetween(points[0], points[1]);
+    const nextScale = pinchStartScale * (distance / pinchStartDistance);
+    setBoardScale(nextScale);
+    if (isPanning) {
+      isPanning = false;
+    }
+  }
+}
+
+function handleZoomPointerEnd(event) {
+  if (event.pointerType !== "touch") {
+    return;
+  }
+
+  if (!activePointers.has(event.pointerId)) {
+    return;
+  }
+
+  activePointers.delete(event.pointerId);
+  if (activePointers.size < 2) {
+    pinchStartDistance = 0;
+  }
+}
+
+function canPanBoard(event) {
+  if (drawMode) {
+    return false;
+  }
+  if (boardScale <= 1) {
+    return false;
+  }
+  if (event.target.closest(".marker") || event.target.closest(".comment-toolbar")) {
+    return false;
+  }
+  return true;
 }
 
 function getBoardPoint(event) {
@@ -128,6 +244,10 @@ function toggleDrawMode() {
 
 function startStroke(event) {
   if (!drawMode) {
+    return;
+  }
+
+  if (activePointers.size > 1) {
     return;
   }
 
@@ -449,18 +569,49 @@ commentEditorModal.addEventListener("pointerdown", (event) => {
 });
 
 board.addEventListener("pointerdown", (event) => {
+  handleZoomPointerDown(event);
   if (event.target.closest(".marker") || event.target.closest(".comment-toolbar")) {
+    return;
+  }
+
+  if (activePointers.size > 1) {
+    return;
+  }
+
+  if (event.pointerType === "touch" && canPanBoard(event)) {
+    isPanning = true;
+    panStartPoint = { x: event.clientX, y: event.clientY };
+    panStartTranslate = { ...boardTranslate };
+    board.setPointerCapture(event.pointerId);
+    event.preventDefault();
     return;
   }
 
   setSelectedComment(null);
   board.setPointerCapture(event.pointerId);
   startStroke(event);
-});
+}, { passive: false });
 
-board.addEventListener("pointermove", extendStroke);
+board.addEventListener("pointermove", (event) => {
+  handleZoomPointerMove(event);
+  if (isPanning && panStartPoint && panStartTranslate) {
+    event.preventDefault();
+    const dx = event.clientX - panStartPoint.x;
+    const dy = event.clientY - panStartPoint.y;
+    setBoardTranslate(panStartTranslate.x + dx, panStartTranslate.y + dy);
+    clampBoardTranslate();
+    return;
+  }
+  extendStroke(event);
+}, { passive: false });
 board.addEventListener("pointerup", (event) => {
   endStroke();
+  handleZoomPointerEnd(event);
+  if (isPanning) {
+    isPanning = false;
+    panStartPoint = null;
+    panStartTranslate = null;
+  }
   if (board.hasPointerCapture(event.pointerId)) {
     board.releasePointerCapture(event.pointerId);
   }
@@ -468,6 +619,12 @@ board.addEventListener("pointerup", (event) => {
 board.addEventListener("pointerleave", endStroke);
 board.addEventListener("pointercancel", (event) => {
   endStroke();
+  handleZoomPointerEnd(event);
+  if (isPanning) {
+    isPanning = false;
+    panStartPoint = null;
+    panStartTranslate = null;
+  }
   if (board.hasPointerCapture(event.pointerId)) {
     board.releasePointerCapture(event.pointerId);
   }
@@ -477,6 +634,8 @@ getMarkers().forEach(enableDragging);
 syncInitialPositions();
 syncDrawButton();
 resizeCanvas();
+setBoardScale(1);
+setBoardTranslate(0, 0);
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !commentEditorModal.hidden) {
